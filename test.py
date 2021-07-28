@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import time
+
 import ldclient
 from ldclient.config import Config
 
@@ -7,6 +9,9 @@ sdk_key = ""
 
 # Set feature_flag_key to the feature flag key you want to evaluate
 feature_flag_key = "my-boolean-flag"
+
+# If using the relay proxy otherwise leave blank for LaunchDarkly defaults
+relay_proxy_uri = "https://launchdarkly-proxy.dev-01.1-19.us-east-1.k8s.dev.appian-internal.com"
 
 def show_message(s):
   print("*** %s" % s)
@@ -17,7 +22,10 @@ if __name__ == "__main__":
     show_message("Please edit test.py to set sdk_key to your LaunchDarkly SDK key first")
     exit()
 
-  ldclient.set_config(Config(sdk_key))
+  config = (
+    Config(sdk_key=sdk_key, base_uri=relay_proxy_uri, events_uri=relay_proxy_uri, stream_uri=relay_proxy_uri) if relay_proxy_uri else Config(sdk_key=sdk_key)
+  )
+  ldclient.set_config(config=config)
 
   # The SDK starts up the first time ldclient.get() is called
   if ldclient.get().is_initialized():
@@ -36,6 +44,8 @@ if __name__ == "__main__":
   flag_value = ldclient.get().variation(feature_flag_key, user, False)
 
   show_message("Feature flag '%s' is %s for this user" % (feature_flag_key, flag_value))
+
+  time.sleep(120)
 
   # Here we ensure that the SDK shuts down cleanly and has a chance to deliver analytics
   # events to LaunchDarkly before the program exits. If analytics events are not delivered,
